@@ -345,7 +345,7 @@ Implementar el cálculo de salario y descuentos para un **empleado de planta**, 
 3. No considerar bonificaciones ni horas extra.
 
 ### Descuentos obligatorios en El Salvador:
-Investigar procesos para calculos los siguientes descuentos de ley
+Investigar procesos para calcular los siguientes descuentos de ley
 - **ISSS** 
 - **AFP** 
 - **Renta**
