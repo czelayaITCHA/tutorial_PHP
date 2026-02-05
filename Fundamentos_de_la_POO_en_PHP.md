@@ -128,6 +128,7 @@ Cada tipo de empleado implementa su propia lógica.
 ---
 
 ## 8. Caso Práctico: Sistema de Planilla
+Dentro de la carpeta **php** del proyecto de clase, crear el archivo **empleado.php** con la clase del punto 8.1 
 
 ### 8.1 Clase Abstracta Empleado
 
@@ -163,6 +164,7 @@ abstract class Empleado{
 ---
 
 ### 8.2 Clase EmpleadoPorHora
+Archivo **empleadohc.php**
 
 ```php
 <?php
@@ -273,6 +275,9 @@ function mostrarInputs(op) {
 </body>
 </html>
 ```
+**Nota: ** Recuerda crear el enlace en index.php hacia la página anterior, como se muestra en la siguiente imágen: 
+
+<img width="1159" height="657" alt="image" src="https://github.com/user-attachments/assets/c3a013a0-04a1-4d1c-963d-15182e6db5b1" />
 
 **Aspectos didácticos a destacar:**
 - Uso de `fetch` para comunicación asíncrona
@@ -299,6 +304,7 @@ if(isset($_POST['tipo'])){
         $result= "error";
     } else if ($tipoEmp == "tc") {
         // TAREA PARA EL ESTUDIANTE
+
     } else {
         if($_POST["horasTrab"] != null && $_POST["valorHora"] != null){
             $horasTrab = $_POST["horasTrab"];
@@ -320,6 +326,9 @@ if(isset($_POST['tipo'])){
     echo json_encode(["error"=> "Error al procesar los datos"]);
 }
 ```
+Si se realiza una prueba de un empleado que se le paga por hora, se obtendrá una salida como la siguiente:
+
+<img width="1327" height="620" alt="image" src="https://github.com/user-attachments/assets/5dd5f32d-bf69-4097-a12b-87d67922384b" />
 
 ---
 
@@ -336,9 +345,10 @@ Implementar el cálculo de salario y descuentos para un **empleado de planta**, 
 3. No considerar bonificaciones ni horas extra.
 
 ### Descuentos obligatorios en El Salvador:
-- **ISSS**: 3% (máx. según ley)
-- **AFP**: 7.25%
-- **Renta**: según tramo (simplificado para el ejercicio, por ejemplo 10%)
+Investigar procesos para calculos los siguientes descuentos de ley
+- **ISSS** 
+- **AFP** 
+- **Renta**
 
 ### Actividades:
 - Implementar los métodos `calcSalario()` y `calcDescuentos()`.
@@ -359,5 +369,5 @@ Representa un caso real del desarrollo de **aplicaciones web con PHP orientado a
 
 ---
 
-📘 *Docente: Programación de Aplicaciones Web con PHP*
+## 13. Subir evidencia de la práctica y solución del ejercicio a la tarea que se programe en Google Classroom
 
