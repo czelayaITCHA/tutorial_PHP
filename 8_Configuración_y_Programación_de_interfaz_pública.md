@@ -268,7 +268,7 @@ Página dedicada a una categoría específica.
 
 ---
 
-## 🔹 AboutView.vue
+## AboutView.vue
 
 Página estática informativa.
 
@@ -485,9 +485,9 @@ export const useAuthStore = defineStore('auth', () => {
 })
 ```
 ## 8.5 En la carpeta components/home, programar los siguientes componentes:
-* ProductCard.vue
-  ## 🧩 ProductCard.vue
 
+* ProductCard.vue
+  
 ````vue
 <template>
   <div
@@ -676,4 +676,441 @@ onMounted(() => {
 </script>
 
 ````
-* 
+* CategoryBar.vue
+
+````vue
+<template>
+  <section class="bg-white border-b border-gray-100 sticky top-20 z-30">
+    <div class="container mx-auto px-6 py-6">
+      <div class="flex gap-6 overflow-x-auto md:justify-center scrollbar-hide">
+        <button
+          v-for="cat in categories"
+          :key="cat"
+          @click="productStore.setCategory(cat)"
+          class="relative flex items-center gap-2 pb-2 font-medium whitespace-nowrap transition-all duration-300"
+          :class="
+            productStore.activeCategory === cat
+              ? 'text-primary'
+              : 'text-gray-500 hover:text-primary'
+          "
+        >
+          <i :class="getIcon(cat)"></i>
+
+          {{ cat === "all" ? "Todos" : cat }}
+
+          <span
+            v-if="productStore.activeCategory === cat"
+            class="absolute bottom-0 left-0 w-full h-[3px] bg-primary rounded-full animate-slide"
+          ></span>
+        </button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup>
+import { computed } from "vue";
+import { useProductStore } from "@/stores/productStore";
+
+const productStore = useProductStore();
+
+const categories = computed(() => {
+  const unique = new Set(
+    productStore.products
+      .map((p) => p.categoria?.nombre?.trim())
+      .filter(Boolean)
+  );
+
+  return ["all", ...unique];
+});
+
+/* Iconos tecnológicos dinámicos */
+const getIcon = (name) => {
+  if (name === "all") return "pi pi-th-large";
+
+  const n = name.toLowerCase();
+
+  if (n.includes("laptop")) return "pi pi-desktop";
+  if (n.includes("monitor")) return "pi pi-window-maximize";
+  if (n.includes("hardware")) return "pi pi-cog";
+  if (n.includes("red")) return "pi pi-share-alt";
+  if (n.includes("accesorio")) return "pi pi-headphones";
+  if (n.includes("almacen")) return "pi pi-database";
+  if (n.includes("componente")) return "pi pi-microchip";
+  if (n.includes("impresora")) return "pi pi-print";
+  if (n.includes("audio")) return "pi pi-volume-up";
+  if (n.includes("gaming")) return "pi pi-star";
+
+  return "pi pi-tag";
+};
+</script>
+
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.animate-slide {
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+</style>
+````
+* ProductSlider.vue
+````vue
+<template>
+  <section class="container mx-auto px-6 py-16">
+    <h3 class="text-3xl font-bold mb-10 text-primary">
+      Nuevos Productos
+    </h3>
+
+    <Carousel
+      :value="products"
+      :numVisible="1"
+      :numScroll="1"
+      :circular="true"
+      :autoplayInterval="5000"
+      :responsiveOptions="responsiveOptions"
+      showNavigators
+      showIndicators
+      class="premium-carousel"
+    >
+      <template #item="slotProps">
+        <div class="p-4">
+          <Card
+            class="shadow-xl rounded-2xl overflow-hidden 
+                   transition-all duration-500 ease-in-out
+                   hover:scale-[1.03] hover:shadow-2xl"
+          >
+            <template #header>
+              <img
+                :src="slotProps.data.image"
+                class="w-full h-56 object-cover"
+              />
+            </template>
+
+            <template #title>
+              <span class="text-xl font-bold">
+                {{ slotProps.data.name }}
+              </span>
+            </template>
+
+            <template #content>
+              <p class="text-primary font-bold text-lg">
+                ${{ slotProps.data.price }}
+              </p>
+            </template>
+          </Card>
+        </div>
+      </template>
+    </Carousel>
+  </section>
+</template>
+
+<script setup>
+import Carousel from 'primevue/carousel'
+import Card from 'primevue/card'
+
+const products = [
+  {
+    name: 'Laptop Gamer RTX',
+    price: 1500,
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8'
+  },
+  {
+    name: 'Monitor 27" 144Hz',
+    price: 320,
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3'
+  },
+  {
+    name: 'Teclado Mecánico RGB',
+    price: 120,
+    image: 'https://images.unsplash.com/photo-1618384887929-16ec33fab9ef'
+  },
+  {
+    name: 'Mouse Gamer Pro',
+    price: 80,
+    image: 'https://images.unsplash.com/photo-1587202372775-989c3e5b9b18'
+  },
+  {
+    name: 'SSD NVMe 1TB',
+    price: 150,
+    image: 'https://images.unsplash.com/photo-1593642532973-d31b6557fa68'
+  }   
+]
+
+const responsiveOptions = [
+  {
+    breakpoint: '1024px',
+    numVisible: 2,
+    numScroll: 1
+  },
+  {
+    breakpoint: '768px',
+    numVisible: 1,
+    numScroll: 1
+  }
+]
+</script>
+````
+* SearchBar.vue
+````vue
+<template>
+  <section class="bg-gray-50">
+    <div class="container mx-auto px-6 py-6">
+
+      <div class="relative max-w-2xl mx-auto">
+
+        <!-- Icono -->
+        <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+
+        <!-- Input -->
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Buscar productos..."
+          class="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200
+                 focus:outline-none focus:ring-2 focus:ring-primary
+                 transition-all duration-300 shadow-sm"
+        />
+
+        <!-- Botón limpiar -->
+        <button
+          v-if="search"
+          @click="clearSearch"
+          class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+
+      </div>
+
+    </div>
+  </section>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useProductStore } from '@/stores/productStore'
+
+const productStore = useProductStore()
+
+const search = computed({
+  get: () => productStore.searchQuery,
+  set: (value) => productStore.setSearch(value)
+})
+
+const clearSearch = () => {
+  productStore.setSearch('')
+}
+</script>
+````
+
+## 8.6 En la carpeta components/layouts, programar los siguientes componentes:
+
+* Navbar.vue
+  ````vue
+  <template>
+  <nav class="bg-primary text-white shadow-lg fixed w-full z-50">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+
+      <!-- Logo -->
+      <h1 class="text-2xl font-bold tracking-wide">
+        💻 TechStore
+      </h1>
+
+      <!-- Desktop Menu -->
+      <div class="hidden md:flex gap-8 font-medium items-center">
+        <a href="#" class="hover:text-blue-200 transition">Inicio</a>
+        <a href="#" class="hover:text-blue-200 transition">Categorías</a>
+        <a href="#" class="hover:text-blue-200 transition">Ofertas</a>
+        <a href="#" class="hover:text-blue-200 transition">Contacto</a>
+
+        <div class="flex gap-3 ml-6">
+          <button
+            class="px-4 py-2 border border-white rounded-lg hover:bg-white hover:text-primary transition"
+          >
+            Iniciar sesión
+          </button>
+
+          <button
+            class="px-4 py-2 bg-white text-primary rounded-lg font-semibold hover:bg-gray-200 transition"
+          >
+            Registrarse
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Hamburger -->
+      <button
+        @click="toggleMenu"
+        class="md:hidden text-2xl focus:outline-none"
+      >
+        <i :class="isOpen ? 'pi pi-times' : 'pi pi-bars'"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <transition name="slide">
+      <div
+        v-if="isOpen"
+        class="md:hidden bg-primary-dark px-6 py-6 space-y-6 shadow-xl"
+      >
+        <a href="#" class="block hover:text-blue-200 transition">Inicio</a>
+        <a href="#" class="block hover:text-blue-200 transition">Categorías</a>
+        <a href="#" class="block hover:text-blue-200 transition">Ofertas</a>
+        <a href="#" class="block hover:text-blue-200 transition">Contacto</a>
+
+        <div class="flex flex-col gap-3 pt-4 border-t border-blue-400">
+          <button
+            class="px-4 py-2 border border-white rounded-lg hover:bg-white hover:text-primary transition"
+          >
+            Iniciar sesión
+          </button>
+
+          <button
+            class="px-4 py-2 bg-white text-primary rounded-lg font-semibold hover:bg-gray-200 transition"
+          >
+            Registrarse
+          </button>
+        </div>
+      </div>
+    </transition>
+  </nav>
+
+  <!-- Spacer para evitar que el contenido quede debajo -->
+  <div class="h-20"></div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isOpen = ref(false)
+
+const toggleMenu = () => {
+  isOpen.value = !isOpen.value
+}
+</script>
+
+<style>
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>
+  ````
+* Footer.vue
+````vue
+<template>
+  <footer class="bg-primary text-white py-8 mt-auto">
+    <div class="container mx-auto px-6 text-center">
+      <p class="font-semibold">© 2026 TechStore</p>
+      <p class="text-blue-200 text-sm">
+        Tecnología • Innovación • Confianza
+      </p>
+    </div>
+  </footer>
+</template>
+````
+* HeroSection.vue
+````vue
+  <template>
+    <section class="bg-gradient-to-r from-primary to-blue-500 text-white py-20">
+      <div class="container mx-auto px-6 grid md:grid-cols-2 items-center gap-10">
+        
+        <div>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+            Tecnología de última generación
+          </h2>
+          <p class="text-lg text-blue-100 mb-6">
+            Encuentra laptops, componentes y accesorios al mejor precio.
+          </p>
+          <button class="bg-white text-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:scale-105 transition">
+            Ver productos
+          </button>
+        </div>
+
+        <div class="hidden md:block">
+          <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8"
+              class="rounded-2xl shadow-2xl" />
+        </div>
+
+      </div>
+    </section>
+  </template>
+````
+## 8.9 Configurar archivo de rutas **router/index.js**
+```js
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+    },
+
+    {
+      path: '/categoria/:slug',
+      name: 'categoria',
+      component: () => import('@/views/CategoryView.vue')
+    },
+    {
+      path: '/about',
+      name: 'about',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/AboutView.vue'),
+    },
+  ],
+})
+
+export default router
+```
+## 8.10 Programar componente HomeView.vue 
+
+````vue
+<template>
+  <div class="bg-gray-50 min-h-screen flex flex-col">
+    <Navbar />
+    <HeroSection />
+    <CategoryBar />
+    <SearchBar />
+    <ProductSlider />
+    <ProductGrid />
+    <Footer />
+  </div>
+</template>
+
+<script setup>
+  import Navbar from "@/components/layouts/Navbar.vue";
+  import Footer from "@/components/layouts/Footer.vue";
+  import HeroSection from "@/components/layouts/HeroSection.vue";
+  import CategoryBar from "@/components/home/CategoryBar.vue";
+  import ProductSlider from "@/components/home/ProductSlider.vue";
+  import ProductGrid from "@/components/home/ProductGrid.vue";
+  import SearchBar from "@/components/home/SearchBar.vue";
+</script>
+````
