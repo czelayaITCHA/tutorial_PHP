@@ -1016,7 +1016,7 @@ const toggleMenu = () => {
   transform: translateY(-10px);
 }
 </style>
-  ````
+````
 * Footer.vue
 ````vue
 <template>
