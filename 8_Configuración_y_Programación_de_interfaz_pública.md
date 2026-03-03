@@ -921,8 +921,9 @@ const clearSearch = () => {
 ## 8.6 En la carpeta components/layouts, programar los siguientes componentes:
 
 * Navbar.vue
-  ````vue
-  <template>
+
+````vue
+<template>
   <nav class="bg-primary text-white shadow-lg fixed w-full z-50">
     <div class="container mx-auto px-6 py-4 flex justify-between items-center">
 
@@ -1017,6 +1018,7 @@ const toggleMenu = () => {
 }
 </style>
 ````
+
 * Footer.vue
 ````vue
 <template>
