@@ -4,7 +4,132 @@
 ```bash
 npm install sweetalert2
 ```
-## 2. Crear stores/orderStore.js (pinia), para gestionar estos de la orden, 
+## 2. Hacer que el backend devuelva los roles en el objeto $user, modificar el método privado responseWithToken, de AuthController, quedando de la siguiente manera:
+```php
+protected function responseWithToken($token){
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'user' => auth()->user()->load('roles'),
+             'expires_in' => auth()->factory()->getTTL() * 60
+        ]);
+    }
+```
+## 3. Instalar plugin oficial para mantener en memoria los valores de los estados
+```bash
+npm install pinia-plugin-persistedstate
+```
+## 4. Actualizar el archivo main.js
+```js
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import { createPinia } from 'pinia'
+import PrimeVue from 'primevue/config'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+// 1. IMPORTAR ESTILOS DE Tailwind
+import './assets/main.css' 
+
+// 2. ESTILOS DE PRIMEVUE
+import 'primevue/resources/themes/saga-blue/theme.css'
+import 'primevue/resources/primevue.css'
+import 'primeicons/primeicons.css'
+
+const app = createApp(App)
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
+
+
+app.use(pinia)
+app.use(router)
+app.use(PrimeVue)
+app.mount('#app')
+
+```
+## 5. Actualizar authStore
+```js
+import { defineStore } from 'pinia'
+import api from '@/services/api'
+import router from '@/router'
+
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    token: null,
+    user: null
+  }),
+
+  // Persistencia automática
+  persist: true,
+
+  getters: {
+    isAuthenticated: (state) => !!state.token,
+
+    isAdmin: (state) => {
+      return state.user?.roles?.some(role => role.name === 'ADMIN')
+    },
+
+    isVendedor: (state) => {
+      return state.user?.roles?.some(role => role.name === 'VENDEDOR')
+    },
+
+    isCliente: (state) => {
+      return state.user?.roles?.some(role => role.name === 'CLIENTE')
+    }
+  },
+
+  actions: {
+
+    async login(credentials) {
+      try {
+        const { data } = await api.post('/auth/login', credentials)
+
+        this.token = data.access_token
+        this.user = data.user
+
+        // Redirección según rol
+        if (this.isAdmin || this.isVendedor) {
+          router.push('/dashboard')
+        } else {
+          router.push('/')
+        }
+
+      } catch (error) {
+        console.error('Error en login:', error)
+        //throw error
+      }
+    },
+
+    async register(payload) {
+      try {
+        const { data } = await api.post('/auth/register', payload)
+
+        this.token = data.access_token
+        this.user = data.user
+
+        router.push('/')
+      } catch (error) {
+        console.error('Error en registro:', error)
+        throw error
+      }
+    },
+
+    async logout() {
+      try {
+        if (this.token) {
+          await api.post('/auth/logout')
+        }
+      } catch (error) {
+        console.warn('Error al cerrar sesión:', error)
+      } finally {
+        this.$reset()
+        router.push('/')
+      }
+    }
+  }
+})
+```
+## 6. Crear stores/orderStore.js (pinia), para gestionar estos de la orden, 
 
 ```js
 import { defineStore } from "pinia";
