@@ -132,71 +132,71 @@ export const useAuthStore = defineStore('auth', {
 ## 6. Crear stores/orderStore.js (pinia), para gestionar estos de la orden, 
 
 ```js
+// stores/orderStore.js
+
 import { defineStore } from "pinia";
 import api from "@/services/api";
-import { useAuthStore } from "./authStore";
-import router from "@/router";
-import Swal from "sweetalert2";
 
 export const useOrderStore = defineStore("order", {
   state: () => ({
     items: [],
+    loading: false,
   }),
 
   getters: {
-    totalItems: (state) => state.items.reduce((sum, item) => sum + item.quantity, 0),
+    total: (state) => state.items.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
 
-    totalPrice: (state) => state.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    totalItems: (state) => state.items.reduce((acc, item) => acc + item.cantidad, 0),
   },
 
   actions: {
-    addProduct(product) {
+    addItem(product) {
       const existing = this.items.find((p) => p.id === product.id);
 
       if (existing) {
-        existing.quantity++;
+        existing.cantidad++;
       } else {
-        this.items.push({ ...product, quantity: 1 });
+        this.items.push({
+          id: product.id,
+          nombre: product.nombre,
+          descripcion: product.descripcion,
+          modelo: product.modelo,
+          marca: product.marca?.nombre ?? "",
+          precio: Number(product.precio),
+          cantidad: 1,
+        });
       }
     },
 
-    updateQuantity(productId, quantity) {
-      const item = this.items.find((p) => p.id === productId);
-      if (item && quantity > 0) {
-        item.quantity = quantity;
-      }
+    removeItem(id) {
+      this.items = this.items.filter((p) => p.id !== id);
     },
 
-    removeProduct(productId) {
-      this.items = this.items.filter((p) => p.id !== productId);
+    increment(id) {
+      const item = this.items.find((p) => p.id === id);
+      if (item) item.cantidad++;
+    },
+
+    decrement(id) {
+      const item = this.items.find((p) => p.id === id);
+      if (item && item.cantidad > 1) item.cantidad--;
     },
 
     clearOrder() {
       this.items = [];
     },
 
-    async checkout() {
-      const authStore = useAuthStore();
+    async confirmOrder(payload) {
+      this.loading = true;
 
-      if (!authStore.isAuthenticated) {
-        router.push("/login");
-        return;
+      try {
+        const response = await api.post("/ordenes", payload);
+        return response; // se retorna todo el response
+      } finally {
+        this.loading = false;
       }
-
-      await api.post("/orders", {
-        products: this.items.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity,
-        })),
-      });
-
-      this.clearOrder();
-      Swal.fire({
-        title: "¡Éxito!",
-        text: "Orden creada correctamente.",
-        icon: "success",
-      });
     },
+    
   },
 });
 
@@ -230,88 +230,184 @@ Y el template, busca el boton Agregar y llama en el evento click la función **a
 ````vue
 <template>
   <div class="container mx-auto px-6 py-10">
+    <!-- Encabezado -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">Detalle de Orden</h1>
+        <p class="text-gray-600 mt-2">
+          Cliente: <span class="font-semibold">{{ authStore.user?.name }}</span>
+        </p>
+        <p class="text-gray-600">
+          Fecha: {{ currentDate }}
+        </p>
+        <p class="text-gray-500 text-sm mt-1">
+          Total de artículos: {{ orderStore.totalItems }}
+        </p>
+      </div>
 
-    <h1 class="text-3xl font-bold mb-8">
-      Mi Orden
-    </h1>
-
-    <div v-if="orderStore.items.length === 0" class="text-gray-500">
-      No hay productos en la orden.
+      <router-link
+        to="/"
+        class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+      >
+        Seguir agregando
+      </router-link>
     </div>
 
-    <div v-else>
+    <!-- Tabla -->
+    <div v-if="orderStore.items.length > 0" class="bg-white shadow-xl rounded-xl overflow-hidden">
 
-      <div
-        v-for="item in orderStore.items"
-        :key="item.id"
-        class="flex justify-between items-center bg-white shadow rounded-xl p-6 mb-4"
-      >
+      <table class="min-w-full text-sm text-left">
 
-        <div>
-          <h2 class="font-semibold">{{ item.name }}</h2>
-          <p class="text-gray-500">
-            {{ formatCurrency(item.price) }}
-          </p>
+        <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+          <tr>
+            <th class="px-6 py-4">Item</th>
+            <th class="px-6 py-4">Producto</th>
+            <th class="px-6 py-4">Marca</th>
+            <th class="px-6 py-4 text-center">Cantidad</th>
+            <th class="px-6 py-4 text-right">Precio</th>
+            <th class="px-6 py-4 text-right">Subtotal</th>
+            <th class="px-6 py-4 text-center">Eliminar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            v-for="(item, index) in orderStore.items"
+            :key="item.id"
+            class="border-b hover:bg-gray-50 transition"
+          >
+            <td class="px-6 py-4 font-medium">
+              {{ index + 1 }}
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="font-semibold">
+                {{ item.nombre }}
+              </div>
+              <div class="text-gray-500 text-xs">
+                {{ item.descripcion }} - {{ item.modelo }}
+              </div>
+            </td>
+
+            <td class="px-6 py-4">
+              {{ item.marca }}
+            </td>
+
+            <!-- CANTIDAD -->
+            <td class="px-6 py-4 text-center">
+              <div class="flex justify-center items-center gap-2">
+                <button
+                    @click="orderStore.decrement(item.id)"
+                    class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    >-</button>
+
+                    <span class="font-semibold w-8 text-center">
+                    {{ item.cantidad }}
+                    </span>
+
+                    <button
+                    @click="orderStore.increment(item.id)"
+                    class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300"
+                    >+</button>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-right">
+              {{ formatCurrency(item.precio) }}
+            </td>
+
+            <td class="px-6 py-4 text-right font-semibold">
+              {{ formatCurrency(item.precio * item.cantidad) }}
+            </td>
+
+            <td class="px-6 py-4 text-center">
+              <button
+                @click="orderStore.removeItem(item.id)"
+                class="text-red-500 hover:text-red-700 transition"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totales -->
+      <div class="p-8 bg-gray-50">
+
+        <div class="flex justify-end">
+          <div class="w-full md:w-1/3 space-y-3 text-sm">
+
+            <div class="flex justify-between">
+              <span>Subtotal (sin IVA)</span>
+              <span>{{ formatCurrency(subtotalSinIVA) }}</span>
+            </div>
+
+            <div class="flex justify-between">
+              <span>IVA (13%)</span>
+              <span>{{ formatCurrency(iva) }}</span>
+            </div>
+
+            <div class="flex justify-between text-xl font-bold border-t pt-3 mt-3">
+              <span>Total</span>
+              <span>{{ formatCurrency(orderStore.total) }}</span>
+            </div>
+
+          </div>
         </div>
 
-        <div class="flex items-center gap-4">
-
-          <input
-            type="number"
-            min="1"
-            v-model.number="item.quantity"
-            @change="update(item)"
-            class="w-20 border rounded-lg px-2 py-1"
-          />
-
-          <span class="font-bold">
-            {{ formatCurrency(item.subtotal) }}
-          </span>
+        <!-- BOTONES -->
+        <div class="flex justify-between mt-8">
 
           <button
-            @click="orderStore.removeItem(item.id)"
-            class="text-red-500 hover:text-red-700"
+            @click="handleClearOrder"
+            class="bg-red-500 text-white px-6 py-3 rounded-xl hover:bg-red-600 transition"
           >
-            <i class="pi pi-trash"></i>
+            Vaciar Orden
+          </button>
+
+          <button
+            @click="confirm"
+            :disabled="orderStore.loading"
+            class="bg-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700 transition shadow disabled:opacity-50"
+          >
+            <span v-if="orderStore.loading">Procesando...</span>
+            <span v-else>Confirmar Orden</span>
           </button>
 
         </div>
 
       </div>
 
-      <div class="bg-gray-100 p-6 rounded-xl mt-6 text-right">
-
-        <p class="text-lg">
-          Subtotal: 
-          <span class="font-semibold">
-            {{ formatCurrency(orderStore.subtotal) }}
-          </span>
-        </p>
-
-        <p class="text-2xl font-bold mt-2">
-          Total: {{ formatCurrency(orderStore.total) }}
-        </p>
-
-        <button
-          class="mt-6 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition"
-        >
-          Finalizar Compra
-        </button>
-
-      </div>
-
     </div>
+
+    <div v-else class="text-gray-500 text-center py-20">
+      No hay productos en la orden.
+    </div>
+
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
 
+const router = useRouter()
 const orderStore = useOrderStore()
+const authStore = useAuthStore()
 
-const update = (item) => {
-  orderStore.updateQuantity(item.id, item.quantity)
-}
+const currentDate = new Date().toLocaleDateString('es-SV')
+
+const subtotalSinIVA = computed(() => {
+  return orderStore.total / 1.13
+})
+
+const iva = computed(() => {
+  return orderStore.total - subtotalSinIVA.value
+})
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('es-SV', {
@@ -320,7 +416,132 @@ const formatCurrency = (value) => {
     minimumFractionDigits: 2
   }).format(value)
 }
+
+const handleClearOrder = async () => {
+  const result = await Swal.fire({
+    title: '¿Vaciar orden?',
+    text: 'Se eliminarán todos los productos de la orden.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Sí, vaciar',
+    cancelButtonText: 'Cancelar'
+  })
+
+  if (result.isConfirmed) {
+    orderStore.clearOrder()
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Orden vaciada',
+      timer: 1500,
+      showConfirmButton: false
+    })
+  }
+}
+
+const confirm = async () => {
+
+   console.log("Entró a confirmOrder");  
+  if (!authStore.user) {
+    router.push('/login')
+    return
+  }
+
+  if (orderStore.items.length === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'No hay productos en la orden'
+    })
+    return
+  }
+
+  const result = await Swal.fire({
+    title: '¿Confirmar orden?',
+    html: `
+      <p>Total a pagar:</p>
+      <strong>${formatCurrency(orderStore.total)}</strong>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#16a34a',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Sí, confirmar',
+    cancelButtonText: 'Cancelar'
+  })
+
+  if (!result.isConfirmed) return
+
+  try {
+
+    const payload = {
+      user_id: authStore.user.id,
+      fecha: new Date().toISOString().split('T')[0],
+      subtotal: subtotalSinIVA.value,
+      impuesto: iva.value,
+      total: orderStore.total,
+      items: orderStore.items.map(item => ({
+        producto_id: item.id,
+        cantidad: item.cantidad
+      }))
+    }
+
+    Swal.fire({
+      title: 'Procesando orden...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    const response = await orderStore.confirmOrder(payload)
+
+    Swal.close()
+
+    // VALIDACIÓN CORRECTA
+    if (response.status === 201) {
+
+      const { message, order } = response.data
+
+      await Swal.fire({
+        icon: 'success',
+        title: message,
+        confirmButtonColor: '#16a34a'
+      })
+
+      orderStore.clearOrder()
+
+      router.push({
+        path: '/',
+        query: { id: order.id }
+      })
+
+    }
+
+  } catch (error) {
+
+    Swal.close()
+
+    Swal.fire({
+      icon: 'error',
+      title: 'Error al crear la orden',
+      text: error.response?.data?.message || 'Error inesperado'
+    })
+  }
+}
+
 </script>
 ````
+## 9 Crear ruta
+```js
+// ruta para componente order - interfaz publica
+    {
+      path: '/order',
+      name: 'Order',
+      component: () => import('@/views/OrderView.vue'),
+      meta: { requiresAuth: true }
+    },
+```
 
 ## 9. Crear ruta 
